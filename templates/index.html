@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal Planner with AI Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Goal Planning Assistant</h1>
+        
+        <div class="form-container">
+            <form method="POST">
+                <div class="form-group">
+                    <label for="goal">Your Goal:</label>
+                    <input type="text" id="goal" name="goal" required value="{{ goal if goal else '' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="deadline">Deadline:</label>
+                    <input type="date" id="deadline" name="deadline" required value="{{ deadline if deadline else '' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="free_time">Daily Free Time (hours):</label>
+                    <input type="number" id="free_time" name="free_time" step="0.5" min="0.5" max="24" required value="{{ free_time if free_time else '1' }}">
+                </div>
+                
+                <button type="submit">Generate Strategy</button>
+            </form>
+        </div>
+        
+        {% if strategy %}
+        <div class="strategy-container">
+            <h2>Your Personalized Strategy</h2>
+            <div class="strategy-content">
+                {{ strategy|safe }}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="chat-container">
+            <h2>AI Assistant</h2>
+            <div id="chat-messages" class="chat-messages">
+                <!-- Messages will appear here -->
+            </div>
+            <div class="chat-input">
+                <input type="text" id="user-message" placeholder="Ask a follow-up question...">
+                <button id="send-button">Send</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const userMessageInput = document.getElementById('user-message');
+            const sendButton = document.getElementById('send-button');
+            
+            // Generate a unique session ID
+            const sessionId = 'session-' + Math.random().toString(36).substr(2, 9);
+            
+            function addMessage(role, content) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role}`;
+                messageDiv.textContent = content;
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            sendButton.addEventListener('click', async function() {
+                const message = userMessageInput.value.trim();
+                if (!message) return;
+                
+                addMessage('user', message);
+                userMessageInput.value = '';
+                
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            session_id: sessionId
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    addMessage('assistant', data.response);
+                } catch (error) {
+                    addMessage('assistant', 'Sorry, there was an error processing your message.');
+                }
+            });
+            
+            // Allow sending with Enter key
+            userMessageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendButton.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
